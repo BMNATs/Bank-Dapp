@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Bank DApp - Week 6 Assignment</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Ethers.js v6 -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/ethers/6.7.0/ethers.umd.min.js"></script>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500;600&family=JetBrains+Mono:wght@400;600&display=swap');
+    body { font-family: 'Kanit', sans-serif; }
+    .font-mono-code { font-family: 'JetBrains Mono', monospace; }
+  </style>
+</head>
+<body class="bg-slate-950 text-slate-100 min-h-screen flex flex-col justify-between p-4 sm:p-6 selection:bg-blue-600">
+
+  <div class="max-w-xl mx-auto w-full space-y-6">
+    <!-- Header ข้อมูลผู้พัฒนา & สถานะระบบ -->
+    <header class="bg-slate-900/90 border border-slate-800 rounded-2xl p-5 shadow-2xl backdrop-blur">
+      <div class="flex items-center justify-between border-b border-slate-800 pb-3 mb-3">
+        <div class="flex items-center gap-2.5">
+          <div class="w-8 h-8 bg-blue-600/20 border border-blue-500/40 rounded-lg flex items-center justify-center text-blue-400 font-bold">
+            🏦
+          </div>
+          <div>
+            <h1 class="font-bold text-base text-white tracking-wide">BANK DAPP CONSOLE</h1>
+            <p class="text-[11px] text-slate-400 font-mono-code">Decentralized Banking System</p>
+          </div>
+        </div>
+        <span class="text-[10px] font-mono-code text-emerald-400 bg-emerald-950/60 border border-emerald-800/50 px-2.5 py-1 rounded-full flex items-center gap-1.5">
+          <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span> SEPOLIA
+        </span>
+      </div>
+
+      <!-- ส่วนแสดงข้อมูลนักศึกษา (เปลี่ยนเป็นข้อมูลจริงของคุณ) -->
+      <div class="bg-slate-950/60 border border-slate-800/80 rounded-xl p-3 text-xs space-y-1">
+        <div class="flex justify-between text-slate-300">
+          <span class="text-slate-400">ผู้พัฒนา:</span>
+          <span class="font-medium text-white">ปัณณวัฒน์ คงเมือง</span>
+        </div>
+        <div class="flex justify-between text-slate-300">
+          <span class="text-slate-400">รหัสนักศึกษา:</span>
+          <span class="font-mono-code text-blue-400">66014862</span> <!-- ใส่รหัสนักศึกษาของคุณตรงนี้ -->
+        </div>
+      </div>
+    </header>
+
+    <!-- ส่วนเชื่อมต่อกระเป๋าถือ -->
+    <section class="bg-slate-900/90 border border-slate-800 rounded-2xl p-5 shadow-xl space-y-3">
+      <div class="flex justify-between items-center text-xs text-slate-400">
+        <span>กระเป๋าเงินที่เชื่อมต่อ (Wallet)</span>
+        <span id="connStatus" class="text-amber-400 font-mono-code">ยังไม่ได้เชื่อมต่อ</span>
+      </div>
+      
+      <div id="accountDisplay" class="font-mono-code text-xs text-slate-300 break-all bg-black/50 p-3 rounded-xl border border-slate-800/80">
+        0x0000000000000000000000000000000000000000
+      </div>
+
+      <button id="btnConnect" onclick="connectWallet()" class="w-full bg-blue-600 hover:bg-blue-500 active:scale-[0.99] text-white font-medium text-xs tracking-wider py-3 rounded-xl transition-all shadow-lg shadow-blue-600/20 flex items-center justify-center gap-2">
+        🦊 เชื่อมต่อ METAMASK
+      </button>
+    </section>
+
+    <!-- ส่วนทำรายการธุรกรรม (จะเปิดให้กดเมื่อเชื่อมต่อกระเป๋าแล้ว) -->
+    <section class="bg-slate-900/90 border border-slate-800 rounded-2xl p-5 shadow-xl space-y-5">
+      
+      <!-- เช็คยอดเงิน -->
+      <div class="bg-black/40 border border-slate-800/80 rounded-xl p-4 flex justify-between items-center">
+        <div>
+          <span class="text-xs text-slate-400 block mb-0.5">ยอดเงินคงเหลือในสัญญา (Balance)</span>
+          <span id="balanceDisplay" class="text-xl font-bold font-mono-code text-emerald-400">0.0000</span>
+          <span class="text-xs font-mono-code text-slate-400 ml-1">ETH</span>
+        </div>
+        <button onclick="checkBalance()" class="bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs px-3 py-2 rounded-lg border border-slate-700 transition">
+          🔄 อัปเดตยอด
+        </button>
+      </div>
+
+      <!-- ฝากเงิน (Deposit) -->
+      <div class="space-y-2">
+        <label class="block text-xs text-slate-300 font-medium">ฝากเงินเข้าสัญญา (Deposit)</label>
+        <div class="flex gap-2">
+          <input type="number" step="0.0001" id="depositAmount" placeholder="จำนวน ETH (เช่น 0.01)" class="w-full bg-black/50 border border-slate-800 rounded-xl px-3.5 py-2.5 text-xs text-white placeholder-slate-600 focus:outline-none focus:border-blue-500 font-mono-code">
+          <button onclick="deposit()" class="bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-medium px-5 py-2.5 rounded-xl transition whitespace-nowrap shadow-lg shadow-emerald-600/20">
+            ฝากเงิน
+          </button>
+        </div>
+      </div>
+
+      <!-- ถอนเงิน (Withdraw) -->
+      <div class="space-y-2 pt-2 border-t border-slate-800/80">
+        <label class="block text-xs text-slate-300 font-medium">ถอนเงินออกจากสัญญา (Withdraw)</label>
+        <div class="flex gap-2">
+          <input type="number" step="0.0001" id="withdrawAmount" placeholder="จำนวน ETH (เช่น 0.005)" class="w-full bg-black/50 border border-slate-800 rounded-xl px-3.5 py-2.5 text-xs text-white placeholder-slate-600 focus:outline-none focus:border-amber-500 font-mono-code">
+          <button onclick="withdraw()" class="bg-amber-600 hover:bg-amber-500 text-white text-xs font-medium px-5 py-2.5 rounded-xl transition whitespace-nowrap shadow-lg shadow-amber-600/20">
+            ถอนเงิน
+          </button>
+        </div>
+      </div>
+
+      <!-- สถานะการประมวลผล -->
+      <div id="statusLog" class="text-xs text-slate-400 text-center min-h-[20px] font-mono-code pt-1"></div>
+    </section>
+  </div>
+
+  <footer class="text-center text-[11px] text-slate-600 py-4 font-mono-code">
+    Bank Smart Contract DApp • Week 6 Assignment
+  </footer>
+
+  <script>
+    // ** นำ Contract Address เต็มที่คุณเพิ่ง Deploy ได้มาวางตรงนี้ **
+    const CONTRACT_ADDRESS = "0xE1350A45bd85dd3aB950d3862845235ACb662017";
+
+    const ABI = [
+      "function deposit() public payable",
+      "function withdraw(uint256 amount) public",
+      "function checkBlance() public view returns (uint256)"
+    ];
+
+    let provider = null;
+    let signer = null;
+    let contract = null;
+
+    async function connectWallet() {
+      if (!window.ethereum) {
+        alert("ไม่พบ MetaMask กรุณาติดตั้ง MetaMask Extension บนเบราว์เซอร์");
+        return;
+      }
+
+      try {
+        logStatus("กำลังเชื่อมต่อกับ MetaMask...");
+        provider = new ethers.BrowserProvider(window.ethereum);
+        
+        // ขออนุมัติเข้าถึงบัญชี
+        await provider.send("eth_requestAccounts", []);
+        signer = await provider.getSigner();
+        const address = await signer.getAddress();
+
+        // สร้างสัญญานำมาสั่งงาน
+        contract = new ethers.Contract(CONTRACT_ADDRESS, ABI, signer);
+
+        document.getElementById("accountDisplay").innerText = address;
+        document.getElementById("connStatus").innerText = "เชื่อมต่อแล้ว";
+        document.getElementById("connStatus").className = "text-emerald-400 font-mono-code";
+        document.getElementById("btnConnect").classList.add("hidden");
+
+        logStatus("เชื่อมต่อกระเป๋าเรียบร้อย");
+        await checkBalance();
+      } catch (err) {
+        logStatus("ข้อผิดพลาดในการเชื่อมต่อ: " + err.message);
+      }
+    }
+
+    async function checkBalance() {
+      if (!contract) return;
+      try {
+        logStatus("กำลังดึงข้อมูลยอดเงิน...");
+        const balanceWei = await contract.checkBlance();
+        const balanceEth = ethers.formatEther(balanceWei);
+        document.getElementById("balanceDisplay").innerText = Number(balanceEth).toFixed(4);
+        logStatus("อัปเดตยอดเงินสำเร็จ");
+      } catch (err) {
+        logStatus("ไม่สามารถดึงยอดเงินได้: " + (err.reason || err.message));
+      }
+    }
+
+    async function deposit() {
+      if (!contract) { alert("กรุณาเชื่อมต่อกระเป๋าก่อน"); return; }
+      const amountEth = document.getElementById("depositAmount").value;
+      if (!amountEth || amountEth <= 0) { alert("กรุณากรอกจำนวนเงินให้ถูกต้อง"); return; }
+
+      try {
+        logStatus(`รอยืนยันฝากเงิน ${amountEth} ETH ใน MetaMask...`);
+        const valueWei = ethers.parseEther(amountEth);
+        const tx = await contract.deposit({ value: valueWei });
+        
+        logStatus("กำลังบันทึกธุรกรรมลงบล็อกเชน (Pending)...");
+        await tx.wait();
+        
+        logStatus("ฝากเงินสำเร็จเรียบร้อย!");
+        document.getElementById("depositAmount").value = "";
+        await checkBalance();
+      } catch (err) {
+        logStatus("ธุรกรรมล้มเหลว: " + (err.reason || err.message));
+      }
+    }
+
+    async function withdraw() {
+      if (!contract) { alert("กรุณาเชื่อมต่อกระเป๋าก่อน"); return; }
+      const amountEth = document.getElementById("withdrawAmount").value;
+      if (!amountEth || amountEth <= 0) { alert("กรุณากรอกจำนวนเงินให้ถูกต้อง"); return; }
+
+      try {
+        logStatus(`รอยืนยันถอนเงิน ${amountEth} ETH ใน MetaMask...`);
+        const valueWei = ethers.parseEther(amountEth);
+        const tx = await contract.withdraw(valueWei);
+        
+        logStatus("กำลังบันทึกธุรกรรมลงบล็อกเชน (Pending)...");
+        await tx.wait();
+        
+        logStatus("ถอนเงินสำเร็จเรียบร้อย!");
+        document.getElementById("withdrawAmount").value = "";
+        await checkBalance();
+      } catch (err) {
+        logStatus("ธุรกรรมล้มเหลว: " + (err.reason || err.message));
+      }
+    }
+
+    function logStatus(msg) {
+      document.getElementById("statusLog").innerText = msg;
+    }
+  </script>
+</body>
+</html>
